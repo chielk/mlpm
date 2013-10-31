@@ -1,3 +1,7 @@
+import numpy as np
+import numpy.matlib
+import matplotlib.pyplot as plt
+
 # Signal generators
 def sawtooth(x, period=0.2, amp=1.0, phase=0.):
     return (((x / period - phase - 0.5) % 1) - 0.5) * 2 * amp
