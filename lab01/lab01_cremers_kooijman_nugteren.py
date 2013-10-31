@@ -3,18 +3,23 @@ import numpy.matlib
 import matplotlib.pyplot as plt
 import scipy
 
+
 # Signal generators
 def sawtooth(x, period=0.2, amp=1.0, phase=0.):
     return (((x / period - phase - 0.5) % 1) - 0.5) * 2 * amp
 
+
 def sine_wave(x, period=0.2, amp=1.0, phase=0.):
     return np.sin((x / period - phase) * 2 * np.pi) * amp
+
 
 def square_wave(x, period=0.2, amp=1.0, phase=0.):
     return ((np.floor(2 * x / period - 2 * phase - 1) % 2 == 0).astype(float) - 0.5) * 2 * amp
 
+
 def triangle_wave(x, period=0.2, amp=1.0, phase=0.):
     return (sawtooth(x, period, 1., phase) * square_wave(x, period, 1., phase) + 0.5) * 2 * amp
+
 
 def random_nonsingular_matrix(d=2):
     """
@@ -25,6 +30,7 @@ def random_nonsingular_matrix(d=2):
     while abs(np.linalg.det(A)) < epsilon:
         A = np.random.rand(d, d)
     return A
+
 
 def plot_signals(X):
     """
@@ -38,13 +44,26 @@ def plot_signals(X):
         ax.set_yticks([])
     plt.show()
 
-# Generate data
-num_sources = 5
-signal_length = 500
-t = np.linspace(0, 1, signal_length)
-S = np.c_[sawtooth(t), sine_wave(t, 0.3), square_wave(t, 0.4), triangle_wave(t, 0.25), np.random.randn(t.size)].T
 
-plot_signals(S)
+def test_plot():
+    # Generate data
+    num_sources = 5
+    signal_length = 500
+    t = np.linspace(0, 1, signal_length)
+    S = np.c_[sawtooth(t), sine_wave(t, 0.3), square_wave(t, 0.4), triangle_wave(t, 0.25), np.random.randn(t.size)].T
+
+    plot_signals(S)
+
+
+def make_mixtures(S, A):
+    return A.dot(S)
+
+
+def one_point_one():
+    S = np.random.random((3, 5))
+    A = np.random.random((3, 3))
+    print make_mixtures(S, A)
+
 
 """
 C = np.eye(5)  # Dummy matrix; compute covariance here
