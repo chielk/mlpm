@@ -36,8 +36,8 @@ def plot_signals(X):
         plt.plot(X[i, :])
         ax.set_xticks([])
         ax.set_yticks([])
+    plt.show()
 
-"""
 # Generate data
 num_sources = 5
 signal_length = 500
@@ -46,6 +46,7 @@ S = np.c_[sawtooth(t), sine_wave(t, 0.3), square_wave(t, 0.4), triangle_wave(t, 
 
 plot_signals(S)
 
+"""
 C = np.eye(5)  # Dummy matrix; compute covariance here
 ax = plt.imshow(C, cmap='gray', interpolation='nearest')
 
