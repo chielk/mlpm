@@ -65,6 +65,17 @@ def one_point_one():
     print make_mixtures(S, A)
 
 
+def plot_histogram(X):
+    hist = np.histogram(X)
+    plt.plot(hist)
+    plt.show()
+
+def one_point_two():
+    X = np.random.random((3, 5))
+    plot_histogram(X)
+
+one_point_two()
+
 """
 C = np.eye(5)  # Dummy matrix; compute covariance here
 ax = plt.imshow(C, cmap='gray', interpolation='nearest')
