@@ -2,6 +2,7 @@ import numpy as np
 import numpy.matlib
 import matplotlib.pyplot as plt
 import scipy
+from scipy.linalg import sqrtm
 
 
 # Signal generators
@@ -19,6 +20,24 @@ def square_wave(x, period=0.2, amp=1.0, phase=0.):
 
 def triangle_wave(x, period=0.2, amp=1.0, phase=0.):
     return (sawtooth(x, period, 1., phase) * square_wave(x, period, 1., phase) + 0.5) * 2 * amp
+
+
+# 1.4
+def whiten(data):
+    s = np.std(data, axis=0)
+    return data / s
+
+"""
+def whiten(X):
+    # zero mean
+    mean = X.mean(axis=1)
+    X = X - mean
+    evs, phi = np.linalg.eig(X.dot(X.T))
+    lam = np.sqrt(np.diag(evs))
+    w = np.matrix(lam).I.dot(phi.T.dot(X))
+    return w
+"""
+
 
 
 def random_nonsingular_matrix(d=2):
@@ -55,6 +74,7 @@ def test_plot():
     plot_signals(S)
 
 
+# 1.1
 def make_mixtures(S, A):
     return A.dot(S)
 
@@ -65,22 +85,46 @@ def one_point_one():
     print make_mixtures(S, A)
 
 
+# 1.2
 def plot_histogram(X):
-    hist = np.histogram(X)
-    plt.plot(hist)
+    plt.hist(X.T, bins=7)
     plt.show()
 
-def one_point_two():
-    X = np.random.random((3, 5))
-    plot_histogram(X)
 
-one_point_two()
+def apply(fun, X):
+    f = numpy.vectorize(fun)
+    return f(X)
+
+
+def ICA(X, activation_function=lambda x: -numpy.tanh(x), learning_rate=0.00001,
+        min_delta=0.01):
+    #G = np.matrix(np.random.random((5, 5)))
+    G = np.matrix(np.identity(5))
+    W = G.I
+    i = 0
+    while i < 10000:
+        if i % 10 == 0:
+            unmixed = W.I.dot(X)
+            plt.scatter(unmixed[0], unmixed[3])
+            plt.show()
+        i += 1
+        A = W.dot(X)
+        Z = apply(activation_function, A)
+        XI = W.T.dot(A)
+        DeltaW = learning_rate * (W + Z.dot(XI.T))
+
+        W += DeltaW
+        if abs(DeltaW).sum() < min_delta:
+            break
+    return W
+
 
 """
 C = np.eye(5)  # Dummy matrix; compute covariance here
 ax = plt.imshow(C, cmap='gray', interpolation='nearest')
 
 
+"""
 import scipy.io.wavfile
 def save_wav(data, out_file, rate):
     scaled = np.int16(data / np.max(np.abs(data)) * 32767)
@@ -92,13 +136,41 @@ source_files = ['beet.wav', 'beet9.wav', 'beet92.wav', 'mike.wav', 'street.wav']
 wav_data = []
 sample_rate = None
 for f in source_files:
-    sr, data = scipy.io.wavfile.read(f, mmap=False)
+    sr, data = scipy.io.wavfile.read(f)
     if sample_rate is None:
         sample_rate = sr
     else:
         assert(sample_rate == sr)
-    wav_data.append(data[:190000])  # cut off the last part so that all signals have same length
+    #wav_data.append(data[:190000])  # cut off the last part so that all signals have same length
+    wav_data.append(list(data[10000:10500]))  # cut off the last part so that all signals have same length
 
+def one_point_two():
+    plot_histogram(X)
+
+A = np.random.random((5, 5))
+
+S = np.c_[wav_data]
+#plt.scatter(S[0], S[1])
+#plt.show()
+
+M = make_mixtures(S, A)
+
+Whitened = whiten(M)
+plt.scatter(Whitened[0], Whitened[3])
+plt.show()
+#plot_signals(M)
+#one_point_two(np.matrix(wav_data))
+#plt.scatter(M[0], Mw[0])
+#plt.show()
+
+W = ICA(Whitened)
+#print W.dot(A)
+print W
+unmixed = W.I.dot(M)
+plt.scatter(unmixed[0], unmixed[3])
+plt.show()
+
+"""
 # Create source and measurement data
 S = np.c_[wav_data]
 plot_signals(S)
