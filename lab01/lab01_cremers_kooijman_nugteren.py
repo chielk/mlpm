@@ -86,8 +86,8 @@ def one_point_one():
 
 
 # 1.2
-def plot_histogram(X):
-    plt.hist(X.T, bins=7)
+def plot_histogram(X, bins=7):
+    plt.hist(X.T, bins=bins)
     plt.show()
 
 
@@ -96,16 +96,15 @@ def apply(fun, X):
     return f(X)
 
 
-def ICA(X, activation_function=lambda x: -numpy.tanh(x), learning_rate=0.00001,
-        min_delta=0.01):
-    #G = np.matrix(np.random.random((5, 5)))
-    G = np.matrix(np.identity(5))
+def ICA(X, activation_function=lambda x: -np.tanh(x), learning_rate=0.001,
+        min_delta=0.0001):
+    G = np.matrix(np.identity(X.shape[0]))
     W = G.I
     i = 0
-    while i < 10000:
+    while i < 10000:  # max number of iterations
         if i % 10 == 0:
             unmixed = W.I.dot(X)
-            plt.scatter(unmixed[0], unmixed[3])
+            plt.scatter(unmixed[0], unmixed[1])
             plt.show()
         i += 1
         A = W.dot(X)
@@ -147,16 +146,16 @@ for f in source_files:
 def one_point_two():
     plot_histogram(X)
 
-A = np.random.random((5, 5))
+A = np.random.random((2, 2))
 
-S = np.c_[wav_data]
+S = np.c_[wav_data[:2]]
 #plt.scatter(S[0], S[1])
 #plt.show()
 
 M = make_mixtures(S, A)
 
 Whitened = whiten(M)
-plt.scatter(Whitened[0], Whitened[3])
+plt.scatter(Whitened[0], Whitened[1])
 plt.show()
 #plot_signals(M)
 #one_point_two(np.matrix(wav_data))
@@ -167,7 +166,7 @@ W = ICA(Whitened)
 #print W.dot(A)
 print W
 unmixed = W.I.dot(M)
-plt.scatter(unmixed[0], unmixed[3])
+plt.scatter(unmixed[0], unmixed[1])
 plt.show()
 
 """
