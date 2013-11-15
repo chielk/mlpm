@@ -96,8 +96,14 @@ class Variable(Node):
             Z: an optional normalization constant can be passed in. If None is passed, Z is computed.
         Returns: Z. Either equal to the input Z, or computed (if Z=None was passed).
         """
-        # TODO: compute marginal
-        return None, None
+        prob = 1
+        for fac in self.neighbours:
+            msg = self.in_msgs[fac]
+            prob *= msg
+        if not Z:
+            Z = sum(prob)
+        marg = prob/Z
+        return marg, Z
 
     def send_sp_msg(self, other):
         """
