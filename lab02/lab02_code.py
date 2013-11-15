@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Node(object):
     """
     Base-class for Nodes in a factor graph. Only instantiate sub-classes of Node.
@@ -97,8 +100,15 @@ class Variable(Node):
         return None, None
 
     def send_sp_msg(self, other):
-        # TODO: implement Variable -> Factor message for sum-product
-        pass
+        """
+        Variable -> Factor message for sum-product
+        """
+        nbs = filter(not nb == other for nb in self.neighbours)
+        if len(nbs) == 0:
+            other.receive_msg(self, np.array([1]*self.num_states))
+        else:
+            pass # TODO implement
+
 
     def send_ms_msg(self, other):
         # TODO: implement Variable -> Factor message for max-sum
@@ -129,10 +139,79 @@ class Factor(Node):
         self.f = f
 
     def send_sp_msg(self, other):
-        # TODO: implement Factor -> Variable message for sum-product
-        pass
+        """
+        Factor -> Variable message for sum-product.
+        """
+        vectors = []
+        for neighbour in filter(not n == other for n in self.neighbours):
+            vectors.append(neighbour.marginal())
+        if len(vectors) == 0:
+            msg = self.f
+        else:
+            msg = np.product.reduce(np.ix_(*vectors))
+        other.send(self, msg)
 
     def send_ms_msg(self, other):
         # TODO: implement Factor -> Variable message for max-sum
         pass
+
+
+def instantiate_network():
+    VARIABLE_NAMES = ['Influenza', 'Smokes', 'SoreThroat', 'Fever',
+                      'Bronchitis', 'Coughing', 'Wheezing']
+    variables = {name: Variable(name, 2) for name in VARIABLE_NAMES}
+
+    f = {}
+    #p(Influenza)=0.05
+    f['f_I'] = np.array([0.05, 0.95])
+
+    #p(Smokes)=0.2
+    f['f_S'] = np.array([0.2, 0.8])
+
+    #p(SoreThroat=1|Influenza=1)=0.3
+    #p(SoreThroat=1|Influenza=0)=0.001
+    f['f_ISt'] = np.array([[0.3, 0.7],
+                           [0.001, 0.999]])
+
+    #p(Bronchitis=1|Influenza=1,Smokes=1)=0.99
+    #p(Bronchitis=1|Influenza=1,Smokes=0)=0.9
+    #p(Bronchitis=1|Influenza=0,Smokes=1)=0.7
+    #p(Bronchitis=1|Influenza=0,Smokes=0)=0.0001
+    f['f_ISB'] = np.array([[[0.99, 0.9],
+                            [0.7, 0.001]],
+                           [[0.01, 0.1],
+                            [0.3, 0.999]]])
+
+    #p(Fever=1|Influenza=1)=0.9
+    #p(Fever=1|Influenza=0)=0.05
+    f['f_IF'] = np.array([[0.9, 0.1],
+                          [0.05, 0.95]])
+
+    #p(Wheezing=1|Bronchitis=1)=0.6
+    #p(Wheezing=1|Bronchitis=0)=0.001
+    f['f_BW'] = np.array([[0.6, 0.4],
+                          [0.001, 0.999]])
+
+    #p(Coughing=1|Bronchitis=1)=0.8
+    #p(Coughing=1|Bronchitis=0)=0.07
+    f['f_BC'] = np.array([[0.8, 0.2],
+                          [0.07, 0.93]])
+
+    FACTORS = [('f_I', [variables['Influenza']]),
+               ('f_S', [variables['Smokes']]),
+               ('f_ISt', [variables['Influenza'],
+                          variables['SoreThroat']]),
+               ('f_ISB', [variables['Smokes'],
+                          variables['Influenza'],
+                          variables['Bronchitis']]),
+               ('f_IF', [variables['Influenza'],
+                         variables['Fever']]),
+               ('f_BW', [variables['Bronchitis'],
+                         variables['Wheezing']]),
+               ('f_BC', [variables['Bronchitis'],
+                         variables['Coughing']])]
+
+    factors = {name: Factor(name, f[name], n) for name, n in FACTORS}
+
+instantiate_network()
 
