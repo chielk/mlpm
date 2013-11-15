@@ -19,6 +19,11 @@
 \pagestyle{plain}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{bayesnet} %https://github.com/jluttine/tikz-bayesnet
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{graphicx}
 \renewcommand{\vec}[1]{\boldsymbol{#1}}
 
 \begin{document}
@@ -79,5 +84,60 @@ $\vec{x}^*_i = \arg\max_{\vec{x}_i} q(\vec{x}_i)$
 
 \subsection*{Example}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}
+	\centering
+	\begin{subfigure}{.5\textwidth}
+		\tikz{
+			\node[latent] (c) {Coherence};
+			\node[latent, below=of c] (d) {Difficulty};
+			\node[latent, below=of d, xshift=1.2cm] (g) {Grade};
+			\node[latent, above=of g, xshift=1.2cm] (i) {Intelligence};
+			\node[latent, right=of g, below=of i, xshift=1.2cm] (s) {SAT};
+			\node[latent, below=of g, xshift=1.2cm] (l) {Letter};
+			\node[latent, below=of s, right=of l] (j) {Job};
+			\node[latent, below=of g, left=of j, yshift=-1.2cm, xshift=-1.2cm] (h) {Happy};
+			\edge{c}{d};
+			\edge{d}{g};
+			\edge{i}{g};
+			\edge{i}{s};
+			\edge{g}{l};
+			\edge{l}{j};
+			\edge{s}{j};
+			\edge{g}{h};
+			\edge{j}{h};
+		}
+		\caption{Directed graph}
+	\end{subfigure}%
+	\centering
+	\begin{subfigure}{.5\textwidth}
+		\tikz{
+			\node[latent] (c) {Coherence};
+			\node[latent, below=of c] (d) {Difficulty};
+			\node[latent, below=of d, xshift=1.2cm] (g) {Grade};
+			\node[latent, above=of g, xshift=1.2cm] (i) {Intelligence};
+			\node[latent, right=of g, below=of i, xshift=1.2cm] (s) {SAT};
+			\node[latent, below=of g, xshift=1.2cm] (l) {Letter};
+			\node[latent, below=of s, right=of l] (j) {Job};
+			\node[latent, below=of g, left=of j, yshift=-1.2cm, xshift=-1.2cm] (h) {Happy};
+			\edge[-]{c}{d};
+			\edge[-]{d}{g};
+			\edge[-]{i}{g};
+			\edge[-]{i}{s};
+			\edge[-]{g}{l};
+			\edge[-]{l}{j};
+			\edge[-]{s}{j};
+			\edge[-]{g}{h};
+			\edge[-]{j}{h};
+			\edge[-]{d}{i};
+			\edge[-]{s}{l};
+			\edge[-]{g}{j};
+		}
+		\caption{Markov random field}
+	\end{subfigure}
+\end{figure}
+
+\begin{align*}
+	p(J) = \sum_L\sum_S\sum_G\sum_H\sum_I\sum_D\sum_C p(C,D,\text{...},H)
+\end{align*}
 
 \end{document}
