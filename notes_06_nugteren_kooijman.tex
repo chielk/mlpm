@@ -1,0 +1,83 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Template for creating scribe notes for MLPM2013.
+%
+%  Fill in your name, lecture number, lecture date and body
+%  of scribe notes as indicated below.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\documentclass[11pt]{article}
+
+\setlength{\topmargin}{0pt}
+\setlength{\textheight}{9in}
+\setlength{\headheight}{0pt}
+\setlength{\headsep}{0pt}
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\textwidth}{6in}
+\pagestyle{plain}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\raisebox{0.6in}[0in]{\makebox[\textwidth][r]{\it
+ DRAFT --- a final version will be posted shortly}}
+\vspace{-0.7in}
+
+\begin{center}
+\bf\large Machine Learning Principles and Methods
+\end{center}
+
+\noindent
+Lecturer: Joris Mooij				  %%% FILL IN LECTURER (if not RS)
+\hfill
+Lecture \#6                            %%% FILL IN LECTURE NUMBER HERE
+\\
+Scribes: Sander Nugteren \& Chiel Kooijman  %%% FILL IN YOUR NAME HERE
+\hfill
+13 November, 2013                        %%% FILL IN LECTURE DATE HERE
+
+\noindent
+\rule{\textwidth}{1pt}
+
+\medskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BODY OF SCRIBE NOTES GOES HERE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{The Max-sum algorithm}
+\begin{align*}
+	\displaystyle
+	\vec{x}^* &= \arg\max_{\vec{x}} \prod_\alpha f_\alpha (\vec{x}_\alpha)\\
+	p(\vec{x}^*) &= \max_{\vec{x}} \frac{1}{Z} \prod_\alpha f_\alpha (\vec{x}_\alpha)\\
+	\log p(\vec{x}^*) &= \log\left[\max_{\vec{x}} \frac{1}{Z} \prod_\alpha
+			f_\alpha (\vec{x}_\alpha)\right]\\
+	&= \max_{\vec{x}} -\log Z + \sum_\alpha \log f_\alpha (\vec{x}_\alpha)&
+			\text{Determines the message $\mu$}\\
+\end{align*}
+
+
+max-beliefs/max-marginals
+\begin{align*}
+	\displaystyle
+	q(\vec{x}_i) &= \max_{\vec{x}_i}
+	\log p(\vec{x}_{\smallsetminus i}, \vec{x}_i)\\
+				&= -\log Z +
+	\sum_{\alpha \in \mathit{Nb}(i)} \mu_{\alpha \rightarrow i}(\vec{x}_i)
+	& \text{$\mathit{Nb}(i)$ denotes the neighbours of $\vec{x}_i$}
+\end{align*}
+
+Given max-marginals you have to perform a decoding step (the Viterbi algorithm)
+in order to find the global optimum. If $q(\vec{x}_i)$ is unique, we can use
+$\vec{x}^*_i = \arg\max_{\vec{x}_i} q(\vec{x}_i)$
+
+\subsection*{Example}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
