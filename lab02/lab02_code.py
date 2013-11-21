@@ -117,8 +117,18 @@ class Variable(Node):
 
 
     def send_ms_msg(self, other):
-        # TODO: implement Variable -> Factor message for max-sum
-        pass
+        """
+        Variable -> Factor message for max-sum
+        """
+        msg = 0
+        nbs = filter(not nb == other for nb in self.neighbours)
+        if len(nbs) == 0:
+            #leaf node
+            other.receive_msg(self, np.array([0]*self.num_states))
+        else:
+            for f in nbs:
+                msg += f.in_msgs[self]
+            other.receive_msg(self, msg)
 
 class Factor(Node):
     def __init__(self, name, f, neighbours):
@@ -158,7 +168,23 @@ class Factor(Node):
         other.send(self, msg)
 
     def send_ms_msg(self, other):
+        """
+        Factor -> Variable message for max-sum.
+        """
         # TODO: implement Factor -> Variable message for max-sum
+        nbs = filter(not nb == other for nb in self.neighbours)
+        if len(nbs) == 0:
+            #leaf node
+            max_msg = np.log(self.f)
+        else:
+            #TODO figure this out
+            #Try out all possible values for x_1,...,x_n
+            #Take the max
+            max_msg = np.array([-1000]*self.num_states)
+            msg = np.log(self.f)
+            for x in nbs:
+                msg += self.in_msgs[x] 
+        other.send(self, max_msg)
         pass
 
 
