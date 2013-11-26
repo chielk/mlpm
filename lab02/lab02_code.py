@@ -54,8 +54,7 @@ class Node(object):
     def __str__(self):
         # This is printed when using 'print node_instance'
         return self.name
-
-
+        
 class Variable(Node):
     def __init__(self, name, num_states):
         """
@@ -126,10 +125,20 @@ class Variable(Node):
         other.receive_msg(self, msg)
         self.sent_msg(other)  # For pending messages
 
-
     def send_ms_msg(self, other):
-        # TODO: implement Variable -> Factor message for max-sum
-        pass
+        """
+        Variable -> Factor message for max-sum
+        """
+        msg = 0
+        nbs = filter(not nb == other for nb in self.neighbours)
+        if len(nbs) == 0:
+            #leaf node
+            msg = np.array([0]*self.num_states)
+        else:
+            for f in nbs:
+                msg += f.in_msgs[self]
+        other.receive_msg(self, msg)
+        #self.sent_msg(other)  # For pending messages
 
 
 class Factor(Node):
@@ -175,7 +184,20 @@ class Factor(Node):
 
     def send_ms_msg(self, other):
         # TODO: implement Factor -> Variable message for max-sum
-        pass
+        """
+        Factor -> Variable message for max-sum.
+        """
+        nbs = filter(lambda nb: not nb == other, self.neighbours)
+        if len(nbs) == 0:
+            msg = np.log(self.f)
+        else:
+            vectors = [self.in_msgs[nb] for nb in nbs]
+            #msg = numpy.matrix(self.f) * numpy.matrix(vectors).T
+            mm = reduce(np.sum, np.ix_(*vectors))
+            other_i = self.neighbours.index(other)
+            msg = np.amax(np.log(self.f) + mm, other_i)
+        other.receive_msg(self, msg)
+        #self.sent_msg(other)  # For pending messages
 
 def instantiate_network():
     VARIABLES = ['Influenza', 'Smokes', 'SoreThroat', 'Fever',
