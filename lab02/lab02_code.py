@@ -280,3 +280,49 @@ def sum_product(node_list):
             print
 
 sum_product(nodes)
+
+def create_noise_filter(height, width, xf,
+                        yf=np.array([[0.9, 0.1], [0.1, 0.9]])):
+    ivs = []
+    for h in xrange(height):
+        row = []
+        for w in xrange(width):
+            row.append(Variable('i-' + str(h) + ', ' + str(w), 2))
+        ivs.append(row)
+
+    vs = []
+    for h in xrange(height):
+        row = []
+        for w in xrange(width):
+            row.append(Variable('vs-' + str(h) + ', ' +str(w), 2))
+        vs.append(row)
+
+    ifs = []
+    for h in xrange(height):
+        row = []
+        for w in xrange(width):
+            neighbours = [ivs[h][w], vs[h][w]]
+            row.append(Factor('ifs-' + str(h) + ', ' + str(w), yf, neighbours))
+        ifs.append(row)
+
+    fs1 = []
+    for h in xrange(height - 1):
+        row = []
+        for w in xrange(width - 1):
+            neighbours = [vs[h][w + 1],
+                          vs[h + 1][w]]
+            row.append(Factor('fs1-' + str(h) + ', ' + str(w), xf, neighbours))
+        fs1.append(row)
+
+    fs2 = []
+    for h in xrange(height - 1):
+        row = []
+        for w in xrange(width - 1):
+            neighbours = [vs[h][w],
+                          vs[h + 1][w + 1]]
+            row.append(Factor('fs2-' + str(h) + ', ' + str(w), xf, neighbours))
+        fs2.append(row)
+
+    return np.array(ivs), np.array(vs), ifs + fs1 + fs2
+
+in_y, out_x, fs = create_noise_filter(10, 10, np.array([[0.5, 0.5], [0.5, 0.5]]))
