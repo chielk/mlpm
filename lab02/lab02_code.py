@@ -130,13 +130,15 @@ class Variable(Node):
         Variable -> Factor message for max-sum
         """
         msg = 0
-        nbs = filter(not nb == other for nb in self.neighbours)
+        nbs = filter(lambda nb: not nb == other, self.neighbours)
         if len(nbs) == 0:
             #leaf node
             msg = np.array([0]*self.num_states)
         else:
-            for f in nbs:
-                msg += f.in_msgs[self]
+            vectors = [self.in_msgs[nb] for nb in nbs]
+            msg = np.sum(vectors)
+            #for f in nbs:
+            #    msg += f.in_msgs[self]
         other.receive_msg(self, msg)
         #self.sent_msg(other)  # For pending messages
 
@@ -183,7 +185,6 @@ class Factor(Node):
         self.sent_msg(other)  # For pending messages
 
     def send_ms_msg(self, other):
-        # TODO: implement Factor -> Variable message for max-sum
         """
         Factor -> Variable message for max-sum.
         """
@@ -191,11 +192,15 @@ class Factor(Node):
         if len(nbs) == 0:
             msg = np.log(self.f)
         else:
-            vectors = [self.in_msgs[nb] for nb in nbs]
-            #msg = numpy.matrix(self.f) * numpy.matrix(vectors).T
-            mm = reduce(np.sum, np.ix_(*vectors))
             other_i = self.neighbours.index(other)
-            msg = np.amax(np.log(self.f) + mm, other_i)
+            vectors = [self.in_msgs[nb] for nb in nbs]
+            mm = np.sum(vectors)
+            #msg = np.amax(np.log(self.f) + mm, other_i)
+            #print 'mm: ', mm
+            #print 'f: ', np.log(self.f)
+            flat_f = np.sum(self.f, axis=other_i)
+            #msg = np.amax(np.log(self.f) + mm)
+            msg = np.amax(flat_f + mm)
         other.receive_msg(self, msg)
         #self.sent_msg(other)  # For pending messages
 
@@ -301,7 +306,7 @@ def sum_product(node_list):
             node.send_sp_msg(neighbour)
             print
 
-sum_product(nodes)
+#sum_product(nodes)
 
 def create_noise_filter(height, width, xf,
                         yf=np.array([[0.9, 0.1], [0.1, 0.9]])):
@@ -348,3 +353,17 @@ def create_noise_filter(height, width, xf,
     return np.array(ivs), np.array(vs), ifs + fs1 + fs2
 
 in_y, out_x, fs = create_noise_filter(10, 10, np.array([[0.5, 0.5], [0.5, 0.5]]))
+
+#f_['f_S'].send_ms_msg(v_['Smokes'])
+#f_['f_I'].send_ms_msg(v_['Influenza'])
+#v_['SoreThroat'].send_ms_msg(f_['f_ISt'])
+#v_['Fever'].send_ms_msg(f_['f_IF'])
+#f_['f_ISt'].send_ms_msg(v_['Influenza'])
+#f_['f_IF'].send_ms_msg(v_['Influenza'])
+#v_['Wheezing'].send_ms_msg(f_['f_BW'])
+#v_['Coughing'].send_ms_msg(f_['f_BC'])
+#f_['f_BW'].send_ms_msg(v_['Bronchitis'])
+#f_['f_BC'].send_ms_msg(v_['Bronchitis'])
+#v_['Influenza'].send_ms_msg(f_['f_ISB'])
+#v_['Smokes'].send_ms_msg(f_['f_ISB'])
+#f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
