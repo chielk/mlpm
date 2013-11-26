@@ -1,5 +1,8 @@
 import numpy as np
 
+DEBUG = True
+
+from pprint import pprint
 
 class Node(object):
     """
@@ -38,10 +41,15 @@ class Node(object):
 
     def receive_msg(self, other, msg):
         # Store the incomming message, replacing previous messages from the same node
+        if DEBUG:
+            print msg, 'received by', self.name, 'from', other.name
         self.in_msgs[other] = msg
 
-        # TODO: add pending messages
-        # self.pending.update(...)
+        # add pending messages
+        self.pending.update(set(self.neighbours) - set([other]))
+
+    def sent_msg(self, other):
+        self.pending.discard(other)
 
     def __str__(self):
         # This is printed when using 'print node_instance'
@@ -89,46 +97,40 @@ class Variable(Node):
         self.observed_state = np.ones(self.num_states)
 
     def marginal(self, Z=None):
-        """
+        """ 
         Compute the marginal distribution of this Variable.
         It is assumed that message passing has completed when this function is called.
         Args:
             Z: an optional normalization constant can be passed in. If None is passed, Z is computed.
         Returns: Z. Either equal to the input Z, or computed (if Z=None was passed).
         """
-        prob = 1
+        prob = 1 
         for fac in self.neighbours:
             msg = self.in_msgs[fac]
-            prob *= msg
+            prob *= msg 
         if not Z:
             Z = sum(prob)
         marg = prob/Z
-        return marg, Z
+        return {'marginal': marg, 'Z': Z}
 
     def send_sp_msg(self, other):
         """
         Variable -> Factor message for sum-product
         """
-        nbs = filter(not nb == other for nb in self.neighbours)
+        nbs = filter(lambda nb: not nb == other, self.neighbours)
         if len(nbs) == 0:
-            other.receive_msg(self, np.array([1]*self.num_states))
+            msg = np.array([1] * self.num_states)
         else:
-            pass # TODO implement
+            vectors = [self.in_msgs[nb] for nb in nbs]
+            msg = np.multiply.reduce(vectors)
+        other.receive_msg(self, msg)
+        self.sent_msg(other)  # For pending messages
 
 
     def send_ms_msg(self, other):
-        """
-        Variable -> Factor message for max-sum
-        """
-        msg = 0
-        nbs = filter(not nb == other for nb in self.neighbours)
-        if len(nbs) == 0:
-            #leaf node
-            other.receive_msg(self, np.array([0]*self.num_states))
-        else:
-            for f in nbs:
-                msg += f.in_msgs[self]
-            other.receive_msg(self, msg)
+        # TODO: implement Variable -> Factor message for max-sum
+        pass
+
 
 class Factor(Node):
     def __init__(self, name, f, neighbours):
@@ -158,92 +160,123 @@ class Factor(Node):
         """
         Factor -> Variable message for sum-product.
         """
-        vectors = []
-        for neighbour in filter(not n == other for n in self.neighbours):
-            vectors.append(neighbour.marginal())
-        if len(vectors) == 0:
+        nbs = filter(lambda nb: not nb == other, self.neighbours)
+        if len(nbs) == 0:
             msg = self.f
         else:
-            msg = np.product.reduce(np.ix_(*vectors))
-        other.send(self, msg)
+            vectors = [self.in_msgs[nb] for nb in nbs]
+            #msg = numpy.matrix(self.f) * numpy.matrix(vectors).T
+            mm = reduce(np.multiply, np.ix_(*vectors))
+            other_i = self.neighbours.index(other)
+            f_axes = filter(lambda i: not i == other_i, range(len(self.neighbours)))
+            msg = np.tensordot(self.f, mm, axes=(f_axes, range(mm.ndim)))
+        other.receive_msg(self, msg)
+        self.sent_msg(other)  # For pending messages
 
     def send_ms_msg(self, other):
-        """
-        Factor -> Variable message for max-sum.
-        """
         # TODO: implement Factor -> Variable message for max-sum
-        nbs = filter(not nb == other for nb in self.neighbours)
-        if len(nbs) == 0:
-            #leaf node
-            max_msg = np.log(self.f)
-        else:
-            #TODO figure this out
-            #Try out all possible values for x_1,...,x_n
-            #Take the max
-            max_msg = np.array([-1000]*self.num_states)
-            msg = np.log(self.f)
-            for x in nbs:
-                msg += self.in_msgs[x] 
-        other.send(self, max_msg)
         pass
 
-
 def instantiate_network():
-    VARIABLE_NAMES = ['Influenza', 'Smokes', 'SoreThroat', 'Fever',
-                      'Bronchitis', 'Coughing', 'Wheezing']
-    variables = {name: Variable(name, 2) for name in VARIABLE_NAMES}
+    VARIABLES = ['Influenza', 'Smokes', 'SoreThroat', 'Fever',
+                 'Bronchitis', 'Coughing', 'Wheezing']
+    v_ = {name: Variable(name, 2) for name in VARIABLES}
 
-    f = {}
+    f_ = {}
     #p(Influenza)=0.05
-    f['f_I'] = np.array([0.05, 0.95])
+    f_['f_I'] = np.array([0.05, 0.95])
 
     #p(Smokes)=0.2
-    f['f_S'] = np.array([0.2, 0.8])
+    f_['f_S'] = np.array([0.2, 0.8])
 
     #p(SoreThroat=1|Influenza=1)=0.3
     #p(SoreThroat=1|Influenza=0)=0.001
-    f['f_ISt'] = np.array([[0.3, 0.7],
+    f_['f_ISt'] = np.array([[0.3, 0.7],
                            [0.001, 0.999]])
 
     #p(Bronchitis=1|Influenza=1,Smokes=1)=0.99
     #p(Bronchitis=1|Influenza=1,Smokes=0)=0.9
     #p(Bronchitis=1|Influenza=0,Smokes=1)=0.7
     #p(Bronchitis=1|Influenza=0,Smokes=0)=0.0001
-    f['f_ISB'] = np.array([[[0.99, 0.9],
+    f_['f_ISB'] = np.array([[[0.99, 0.9],
                             [0.7, 0.001]],
                            [[0.01, 0.1],
                             [0.3, 0.999]]])
 
     #p(Fever=1|Influenza=1)=0.9
     #p(Fever=1|Influenza=0)=0.05
-    f['f_IF'] = np.array([[0.9, 0.1],
+    f_['f_IF'] = np.array([[0.9, 0.1],
                           [0.05, 0.95]])
 
     #p(Wheezing=1|Bronchitis=1)=0.6
     #p(Wheezing=1|Bronchitis=0)=0.001
-    f['f_BW'] = np.array([[0.6, 0.4],
+    f_['f_BW'] = np.array([[0.6, 0.4],
                           [0.001, 0.999]])
 
     #p(Coughing=1|Bronchitis=1)=0.8
     #p(Coughing=1|Bronchitis=0)=0.07
-    f['f_BC'] = np.array([[0.8, 0.2],
+    f_['f_BC'] = np.array([[0.8, 0.2],
                           [0.07, 0.93]])
 
-    FACTORS = [('f_I', [variables['Influenza']]),
-               ('f_S', [variables['Smokes']]),
-               ('f_ISt', [variables['Influenza'],
-                          variables['SoreThroat']]),
-               ('f_ISB', [variables['Smokes'],
-                          variables['Influenza'],
-                          variables['Bronchitis']]),
-               ('f_IF', [variables['Influenza'],
-                         variables['Fever']]),
-               ('f_BW', [variables['Bronchitis'],
-                         variables['Wheezing']]),
-               ('f_BC', [variables['Bronchitis'],
-                         variables['Coughing']])]
+    FACTORS = [('f_I', [v_['Influenza']]),
+               ('f_S', [v_['Smokes']]),
+               ('f_ISt', [v_['Influenza'],
+                          v_['SoreThroat']]),
+               ('f_ISB', [v_['Smokes'],
+                          v_['Influenza'],
+                          v_['Bronchitis']]),
+               ('f_IF', [v_['Influenza'],
+                         v_['Fever']]),
+               ('f_BW', [v_['Bronchitis'],
+                         v_['Wheezing']]),
+               ('f_BC', [v_['Bronchitis'],
+                         v_['Coughing']])]
 
-    factors = {name: Factor(name, f[name], n) for name, n in FACTORS}
+    f_ = {name: Factor(name, f_[name], n) for name, n in FACTORS}
+    return f_, v_
 
-instantiate_network()
+f_, v_ = instantiate_network()
 
+nodes = [f_['f_S'],
+         f_['f_I'],
+         v_['SoreThroat'],
+         v_['Fever'],
+         v_['Coughing'],
+         v_['Wheezing'],
+         f_['f_ISt'],
+         f_['f_IF'],
+         f_['f_BC'],
+         f_['f_BW'],
+         v_['Smokes'],
+         v_['Bronchitis'],
+         v_['Influenza'],
+         f_['f_ISB']]
+
+def sum_product(node_list):
+    # Forward
+    for i, node in enumerate(node_list):
+        for neighbour in filter(lambda n: n not in node_list[:i],
+                                node.neighbours):
+            print node.name, '>', neighbour.name
+            node.send_sp_msg(neighbour)
+            print
+    # Set pending
+    for node in node_list:
+        if len(node.neighbours) == 1:
+            node.pending.add(node.neighbours[0])
+
+    print
+    print '===== set pending nodes ====='
+    print
+    print
+
+    # Back
+    reverse_nodes = list(reversed(node_list))
+    for i, node in enumerate(reverse_nodes):
+        for neighbour in filter(lambda n: n not in reverse_nodes[:i],
+                                node.neighbours):
+            print node.name, '>', neighbour.name
+            node.send_sp_msg(neighbour)
+            print
+
+sum_product(nodes)
