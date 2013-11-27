@@ -280,13 +280,16 @@ nodes = [f_['f_S'],
          v_['Influenza'],
          f_['f_ISB']]
 
-def sum_product(node_list):
+def sum_product(node_list, max_sum=False):
     # Forward
     for i, node in enumerate(node_list):
         for neighbour in filter(lambda n: n not in node_list[:i],
                                 node.neighbours):
             print node.name, '>', neighbour.name
-            node.send_sp_msg(neighbour)
+            if max_sum:
+                node.send_ms_msg(neighbour)
+            else:
+                node.send_sp_msg(neighbour)
             print
     # Set pending
     for node in node_list:
@@ -304,7 +307,10 @@ def sum_product(node_list):
         for neighbour in filter(lambda n: n not in reverse_nodes[:i],
                                 node.neighbours):
             print node.name, '>', neighbour.name
-            node.send_sp_msg(neighbour)
+            if max_sum:
+                node.send_ms_msg(neighbour)
+            else:
+                node.send_sp_msg(neighbour)
             print
 
 #sum_product(nodes)
@@ -368,3 +374,13 @@ f_['f_BC'].send_ms_msg(v_['Bronchitis'])
 v_['Influenza'].send_ms_msg(f_['f_ISB'])
 v_['Smokes'].send_ms_msg(f_['f_ISB'])
 f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
+
+
+#Question 2.3
+def best_value(variable):
+    s = np.sum(variable.in_msgs.values(), axis=0)
+    return np.argmax(s)
+
+sum_product(nodes, max_sum=True)
+for var in v_.values():
+    print var.name, not best_value(var)
