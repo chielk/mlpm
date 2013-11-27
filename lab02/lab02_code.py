@@ -447,26 +447,18 @@ def loopy_belief(xs, ys, fs, im):
         for f in fs:
             for nb in f.neighbours:
                 f.send_ms_msg(nb)
-
-        print 'ifs'
         for f in ifs:
             for nb in f.neighbours:
                 f.send_ms_msg(nb)
-
-        print 'ys'
         for yrow in ys:
             for y in yrow:
                 for nb in y.neighbours:
                     y.send_ms_msg(nb)
-
-        print 'xs'
         for xrow in xs:
             for x in xrow:
                 for nb in x.neighbours:
                     x.send_ms_msg(nb)
                     x.set_latent()
-
-# TODO: get MAP
 
 loopy_belief(out_x, in_y, fs, noise_test_im)
 
