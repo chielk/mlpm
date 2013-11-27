@@ -421,6 +421,7 @@ def loopy_belief(xs, ys, fs, im):
     for i in range(ITERATINS):
         print 'fs'
         for f in fs:
+            print f
             for nb in f.neighbours:
                 f.send_ms_msg(nb)
 
@@ -434,7 +435,8 @@ def loopy_belief(xs, ys, fs, im):
             for x in xrow:
                 for nb in x.neighbours:
                     x.send_ms_msg(nb)
+                    x.set_latent()
 
     # TODO: get MAP
 
-loopy_belief(out_x, in_y, filter_f(), noise_test_im)
+loopy_belief(out_x, in_y, fs, noise_test_im)
