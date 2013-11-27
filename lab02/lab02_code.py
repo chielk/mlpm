@@ -381,6 +381,27 @@ def best_value(variable):
     s = np.sum(variable.in_msgs.values(), axis=0)
     return np.argmax(s)
 
-sum_product(nodes, max_sum=True)
-for var in v_.values():
-    print var.name, not best_value(var)
+#sum_product(nodes, max_sum=True)
+#for var in v_.values():
+#    print var.name, not best_value(var)
+
+from pylab import imread, gray
+# Load the image and binarize
+im = np.mean(imread('dalmatian1.png'), axis=2) > 0.5
+test_im = np.zeros((10,10))
+#test_im[5:8, 3:8] = 1.0
+#test_im[5,5] = 1.0
+
+# Add some noise
+noise = np.random.rand(*test_im.shape) > 0.9
+noise_test_im = np.logical_xor(noise, test_im)
+
+def filter_f(p=0.9):
+    return np.array([[p, 1 - p],[1 - p, p]])
+
+in_y, out_x, fs = create_noise_filter(im.shape[0], im.shape[1], filter_f())
+
+def loopy_belief(xs, ys, fs, im):
+    for y, pix in zip(ys, noise_test_im):
+        print pix
+
