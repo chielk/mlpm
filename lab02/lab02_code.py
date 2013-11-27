@@ -200,7 +200,7 @@ class Factor(Node):
                 t = np.rollaxis(t,0,i)
                 mm += t            
             other_i = self.neighbours.index(other)
-            f_axes = filter(lambda i: not i == other_i, range(len(self.neighbours)))
+            f_axes = tuple(filter(lambda i: not i == other_i,range(len(self.neighbours))))
             msg = np.amax(np.log(self.f) + mm, axis=f_axes)
         other.receive_msg(self, msg)
         #self.sent_msg(other)  # For pending messages
