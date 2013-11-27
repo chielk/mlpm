@@ -135,13 +135,10 @@ class Variable(Node):
             #leaf node
             msg = np.array([0]*self.num_states)
         else:
-            vectors = [self.in_msgs[nb] for nb in nbs]
-            msg = np.sum(vectors)
-            #for f in nbs:
-            #    msg += f.in_msgs[self]
+            for f in nbs:
+                msg += self.in_msgs[f]
         other.receive_msg(self, msg)
         #self.sent_msg(other)  # For pending messages
-
 
 class Factor(Node):
     def __init__(self, name, f, neighbours):
@@ -192,15 +189,19 @@ class Factor(Node):
         if len(nbs) == 0:
             msg = np.log(self.f)
         else:
+            mm = 0
+            dims = [nb.num_states for nb in nbs]
+            for nb in nbs:
+                i = nbs.index(nb)
+                dim_copy = dims[:]
+                del dim_copy[i]
+                dim_copy.append(1)
+                t = np.tile(self.in_msgs[nb], dim_copy)
+                t = np.rollaxis(t,0,i)
+                mm += t            
             other_i = self.neighbours.index(other)
-            vectors = [self.in_msgs[nb] for nb in nbs]
-            mm = np.sum(vectors)
-            #msg = np.amax(np.log(self.f) + mm, other_i)
-            #print 'mm: ', mm
-            #print 'f: ', np.log(self.f)
-            flat_f = np.sum(self.f, axis=other_i)
-            #msg = np.amax(np.log(self.f) + mm)
-            msg = np.amax(flat_f + mm)
+            f_axes = filter(lambda i: not i == other_i, range(len(self.neighbours)))
+            msg = np.amax(np.log(self.f) + mm, axis=f_axes)
         other.receive_msg(self, msg)
         #self.sent_msg(other)  # For pending messages
 
@@ -354,16 +355,16 @@ def create_noise_filter(height, width, xf,
 
 in_y, out_x, fs = create_noise_filter(10, 10, np.array([[0.5, 0.5], [0.5, 0.5]]))
 
-#f_['f_S'].send_ms_msg(v_['Smokes'])
-#f_['f_I'].send_ms_msg(v_['Influenza'])
-#v_['SoreThroat'].send_ms_msg(f_['f_ISt'])
-#v_['Fever'].send_ms_msg(f_['f_IF'])
-#f_['f_ISt'].send_ms_msg(v_['Influenza'])
-#f_['f_IF'].send_ms_msg(v_['Influenza'])
-#v_['Wheezing'].send_ms_msg(f_['f_BW'])
-#v_['Coughing'].send_ms_msg(f_['f_BC'])
-#f_['f_BW'].send_ms_msg(v_['Bronchitis'])
-#f_['f_BC'].send_ms_msg(v_['Bronchitis'])
-#v_['Influenza'].send_ms_msg(f_['f_ISB'])
-#v_['Smokes'].send_ms_msg(f_['f_ISB'])
-#f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
+f_['f_S'].send_ms_msg(v_['Smokes'])
+f_['f_I'].send_ms_msg(v_['Influenza'])
+v_['SoreThroat'].send_ms_msg(f_['f_ISt'])
+v_['Fever'].send_ms_msg(f_['f_IF'])
+f_['f_ISt'].send_ms_msg(v_['Influenza'])
+f_['f_IF'].send_ms_msg(v_['Influenza'])
+v_['Wheezing'].send_ms_msg(f_['f_BW'])
+v_['Coughing'].send_ms_msg(f_['f_BC'])
+f_['f_BW'].send_ms_msg(v_['Bronchitis'])
+f_['f_BC'].send_ms_msg(v_['Bronchitis'])
+v_['Influenza'].send_ms_msg(f_['f_ISB'])
+v_['Smokes'].send_ms_msg(f_['f_ISB'])
+f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
