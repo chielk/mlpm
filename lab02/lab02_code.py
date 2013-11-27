@@ -1,6 +1,6 @@
 import numpy as np
 
-DEBUG = True
+DEBUG = False
 
 from pprint import pprint
 
@@ -54,7 +54,7 @@ class Node(object):
     def __str__(self):
         # This is printed when using 'print node_instance'
         return self.name
-        
+
 class Variable(Node):
     def __init__(self, name, num_states):
         """
@@ -317,63 +317,65 @@ def sum_product(node_list, max_sum=False):
 
 def create_noise_filter(height, width, xf,
                         yf=np.array([[0.9, 0.1], [0.1, 0.9]])):
+    print 'creating input variables...',
     ivs = []
     for h in xrange(height):
         row = []
         for w in xrange(width):
             row.append(Variable('i-' + str(h) + ', ' + str(w), 2))
         ivs.append(row)
+    print 'done'
 
+    print 'creating output variables...',
     vs = []
     for h in xrange(height):
         row = []
         for w in xrange(width):
             row.append(Variable('vs-' + str(h) + ', ' +str(w), 2))
         vs.append(row)
+    print 'done'
 
-    ifs = []
+    print 'creating input factors...',
+    ifs = set([])
     for h in xrange(height):
-        row = []
         for w in xrange(width):
             neighbours = [ivs[h][w], vs[h][w]]
-            row.append(Factor('ifs-' + str(h) + ', ' + str(w), yf, neighbours))
-        ifs.append(row)
+            ifs.add(Factor('ifs-' + str(h) + ', ' + str(w), yf, neighbours))
+    print 'done'
 
-    fs1 = []
+    print 'creating loopy factors...',
+    fs = set([])
     for h in xrange(height - 1):
-        row = []
         for w in xrange(width - 1):
             neighbours = [vs[h][w + 1],
                           vs[h + 1][w]]
-            row.append(Factor('fs1-' + str(h) + ', ' + str(w), xf, neighbours))
-        fs1.append(row)
+            fs.add(Factor('fs1-' + str(h) + ', ' + str(w), xf, neighbours))
+    print 'done'
 
-    fs2 = []
+    print 'creating loopy factors...',
     for h in xrange(height - 1):
-        row = []
         for w in xrange(width - 1):
             neighbours = [vs[h][w],
                           vs[h + 1][w + 1]]
-            row.append(Factor('fs2-' + str(h) + ', ' + str(w), xf, neighbours))
-        fs2.append(row)
+            fs.add(Factor('fs2-' + str(h) + ', ' + str(w), xf, neighbours))
+    print 'done'
 
-    return np.array(ivs), np.array(vs), ifs + fs1 + fs2
+    return np.array(ivs), np.array(vs), ifs, fs
 
-in_y, out_x, fs = create_noise_filter(10, 10, np.array([[0.5, 0.5], [0.5, 0.5]]))
 
-f_['f_S'].send_ms_msg(v_['Smokes'])
-f_['f_I'].send_ms_msg(v_['Influenza'])
-v_['SoreThroat'].send_ms_msg(f_['f_ISt'])
-v_['Fever'].send_ms_msg(f_['f_IF'])
-f_['f_ISt'].send_ms_msg(v_['Influenza'])
-f_['f_IF'].send_ms_msg(v_['Influenza'])
-v_['Wheezing'].send_ms_msg(f_['f_BW'])
-v_['Coughing'].send_ms_msg(f_['f_BC'])
-f_['f_BW'].send_ms_msg(v_['Bronchitis'])
-f_['f_BC'].send_ms_msg(v_['Bronchitis'])
-v_['Influenza'].send_ms_msg(f_['f_ISB'])
-v_['Smokes'].send_ms_msg(f_['f_ISB'])
-f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
+#f_['f_S'].send_ms_msg(v_['Smokes'])
+#f_['f_I'].send_ms_msg(v_['Influenza'])
+#v_['SoreThroat'].send_ms_msg(f_['f_ISt'])
+#v_['Fever'].send_ms_msg(f_['f_IF'])
+#f_['f_ISt'].send_ms_msg(v_['Influenza'])
+#f_['f_IF'].send_ms_msg(v_['Influenza'])
+#v_['Wheezing'].send_ms_msg(f_['f_BW'])
+#v_['Coughing'].send_ms_msg(f_['f_BC'])
+#f_['f_BW'].send_ms_msg(v_['Bronchitis'])
+#f_['f_BC'].send_ms_msg(v_['Bronchitis'])
+#v_['Influenza'].send_ms_msg(f_['f_ISB'])
+#v_['Smokes'].send_ms_msg(f_['f_ISB'])
+#f_['f_ISB'].send_ms_msg(v_['Bronchitis'])
 
 
 #Question 2.3
@@ -396,12 +398,43 @@ test_im = np.zeros((10,10))
 noise = np.random.rand(*test_im.shape) > 0.9
 noise_test_im = np.logical_xor(noise, test_im)
 
-def filter_f(p=0.9):
+def filter_f(p=0.7):
     return np.array([[p, 1 - p],[1 - p, p]])
 
-in_y, out_x, fs = create_noise_filter(im.shape[0], im.shape[1], filter_f())
+#in_y, out_x, fs = create_noise_filter(600, 300, np.array([[0.5, 0.5], [0.5, 0.5]]))
+in_y, out_x, ifs, fs = create_noise_filter(noise_test_im.shape[0], noise_test_im.shape[1], filter_f())
 
 def loopy_belief(xs, ys, fs, im):
-    for y, pix in zip(ys, noise_test_im):
-        print pix
+    # Set observed values
+    for yrow, pixrow in zip(ys, im):
+        for y, pix in zip(yrow, pixrow):
+            value = np.array([1, 0]) if pix else np.array([0, 1])
+            y.set_observed(value)
 
+    # Pretend initial value to get started
+    for xrow in xs:
+        for x in xrow:
+            x.set_observed(np.array([1, 1]))
+
+    ITERATINS = 10
+    # TODO: message ifs, fs, xs, ifs, fs, xs, ... ifs, fs, xs
+    for i in range(ITERATINS):
+        print 'fs'
+        for f in fs:
+            for nb in f.neighbours:
+                f.send_ms_msg(nb)
+
+        print 'ifs'
+        for f in ifs:
+            for nb in f.neighbours:
+                f.send_ms_msg(nb)
+
+        print 'xs'
+        for xrow in xs:
+            for x in xrow:
+                for nb in x.neighbours:
+                    x.send_ms_msg(nb)
+
+    # TODO: get MAP
+
+loopy_belief(out_x, in_y, filter_f(), noise_test_im)
