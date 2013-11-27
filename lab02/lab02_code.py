@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt 
 
 DEBUG = False
 
@@ -67,6 +68,7 @@ class Variable(Node):
             and the allowable states are 0, 1.
         """
         self.num_states = num_states
+        self.o = False
 
         # Call the base-class constructor
         super(Variable, self).__init__(name)
@@ -77,6 +79,7 @@ class Variable(Node):
         Args:
             observed_state: an integer value in [0, self.num_states - 1].
         """
+        self.o = True
         # Observed state is represented as a 1-of-N variable
         # Could be 0.0 for sum-product, but log(0.0) = -inf so a tiny value is preferable for max-sum
         self.observed_state[:] = 0.000001
@@ -86,6 +89,7 @@ class Variable(Node):
         """
         Erase an observed state for this variable and consider it latent again.
         """
+        self.o = False
         # No state is preferred, so set all entries of observed_state to 1.0
         # Using this representation we need not differentiate observed an latent
         # variables when sending messages.
@@ -116,6 +120,10 @@ class Variable(Node):
         """
         Variable -> Factor message for sum-product
         """
+        if self.o:
+            other.receive_msg(self, self.observed_state)
+            self.sent_msg(other)  # For pending messages
+            return
         nbs = filter(lambda nb: not nb == other, self.neighbours)
         if len(nbs) == 0:
             msg = np.array([1] * self.num_states)
@@ -129,6 +137,10 @@ class Variable(Node):
         """
         Variable -> Factor message for max-sum
         """
+        if self.o:
+            other.receive_msg(self, self.observed_state)
+            self.sent_msg(other)  # For pending messages
+            return
         msg = 0
         nbs = filter(lambda nb: not nb == other, self.neighbours)
         if len(nbs) == 0:
@@ -138,7 +150,7 @@ class Variable(Node):
             for f in nbs:
                 msg += self.in_msgs[f]
         other.receive_msg(self, msg)
-        #self.sent_msg(other)  # For pending messages
+        self.sent_msg(other)  # For pending messages
 
 class Factor(Node):
     def __init__(self, name, f, neighbours):
@@ -203,7 +215,7 @@ class Factor(Node):
             f_axes = tuple(filter(lambda i: not i == other_i,range(len(self.neighbours))))
             msg = np.amax(np.log(self.f) + mm, axis=f_axes)
         other.receive_msg(self, msg)
-        #self.sent_msg(other)  # For pending messages
+        self.sent_msg(other)  # For pending messages
 
 def instantiate_network():
     VARIABLES = ['Influenza', 'Smokes', 'SoreThroat', 'Fever',
@@ -416,12 +428,23 @@ def loopy_belief(xs, ys, fs, im):
         for x in xrow:
             x.set_observed(np.array([1, 1]))
 
-    ITERATINS = 10
+    print 'ys'
+    for yrow in ys:
+        for y in yrow:
+            for nb in y.neighbours:
+                y.send_ms_msg(nb)
+
+    print 'xs'
+    for xrow in xs:
+        for x in xrow:
+            for nb in x.neighbours:
+                x.send_ms_msg(nb)
+
+    ITERATIONS = 10
     # TODO: message ifs, fs, xs, ifs, fs, xs, ... ifs, fs, xs
-    for i in range(ITERATINS):
+    for i in range(ITERATIONS):
         print 'fs'
         for f in fs:
-            print f
             for nb in f.neighbours:
                 f.send_ms_msg(nb)
 
@@ -430,6 +453,12 @@ def loopy_belief(xs, ys, fs, im):
             for nb in f.neighbours:
                 f.send_ms_msg(nb)
 
+        print 'ys'
+        for yrow in ys:
+            for y in yrow:
+                for nb in y.neighbours:
+                    y.send_ms_msg(nb)
+
         print 'xs'
         for xrow in xs:
             for x in xrow:
@@ -437,6 +466,18 @@ def loopy_belief(xs, ys, fs, im):
                     x.send_ms_msg(nb)
                     x.set_latent()
 
-    # TODO: get MAP
+# TODO: get MAP
 
 loopy_belief(out_x, in_y, fs, noise_test_im)
+
+sum_product(nodes, max_sum=True)
+clear_img = []
+for xrow in out_x:
+    row = []
+    for x in xrow:
+        row.append(not best_value(x))
+    clear_img.append(row)
+
+print 'Showing the figure'
+plt.figure()
+plt.imshow(np.array(clear_img))
