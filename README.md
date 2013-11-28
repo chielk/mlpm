@@ -1,4 +1,0 @@
-mlpm
-====
-
-Lab assignments
