@@ -97,6 +97,21 @@ class BayesianPCA(object):
 # common nowadays). Could we use this to assess the convergence of the
 # variational Bayesian PCA algorithm? If yes, how? If no, why not?
 
+"""
+\\begin{align*}
+    \ln p(\mathbf{X}, \mathbf{Z}, \mathbf{W}, \alpha, \tau, \mu) &=
+        p(\alpha) p(\mathbf{W}|\alpha) p(\tau)^{-1}p(\mu)
+        p(\mathbf{X}|\mathbf{Z},\mathbf{W}, \mu) p(\mathbf{X})\\\\
+    &= \ln \prod_{i=1}^q \Gamma (\alpha_i|a_\alpha, b_\alpha)
+        p(\mathbf{W}|\alpha) \Gamma (\tau|c_\tau, d_\tau)^{-1}
+        \mathcal{N}(\mu|\mathbf{0}, \beta^{-1}\mathbf{I})
+        p(\mathbf{X}|\mathbf{Z},\mathbf{W}, \mu) p(\mathbf{X})\\\\
+    &= \sum_{i=1}^q \ln \Gamma (\alpha_i|a_\alpha, b_\alpha) +
+        \ln p(\mathbf{W}|\alpha) + \ln \Gamma (\tau|c_\tau, d_\tau)^{-1} +
+        \ln \mathcal{N}(\mu|\mathbf{0}, \ln \beta^{-1}\mathbf{I}) +
+        \ln p(\mathbf{X}|\mathbf{Z},\mathbf{W}, \mu) + \ln p(\mathbf{X})
+\\end{align*}
+"""
 
 
 # ### 4. The lower bound $\mathcal{L}(Q)$ (25 points)
